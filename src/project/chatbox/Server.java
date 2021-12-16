@@ -17,7 +17,7 @@ public class Server {
         // TODO code application logic here
         System.out.println("Hello");
         System.out.println("hi firend");
-        
+        System.out.println("hi HIHIHI");
     }
     
 }
