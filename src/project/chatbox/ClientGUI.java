@@ -1,25 +1,27 @@
 package project.chatbox;
-
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JOptionPane;
-
-
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
 public class ClientGUI extends javax.swing.JFrame{
- 
+    
+    private static final long serialVersionUID = 1L;
+    private boolean connected;
+    private Client client;
+    ClientGUI clientside;
+   
     public ClientGUI(){
         initComponents();
     }
 
     private ClientGUI(String localhost, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  
+    }
+     
+    void append(String str) 
+    {
+        chatTextArea.append(str);
+        chatTextArea.setCaretPosition(chatTextArea.getText().length() - 1);
     }
     
     /**
@@ -176,16 +178,20 @@ public class ClientGUI extends javax.swing.JFrame{
         );
 
         pack();
+        setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
     private void connectBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectBtnActionPerformed
-
+  
     if (usernameField.getText().isEmpty())
       {
         JOptionPane.showMessageDialog(null, "Please input username");
       }
     else 
       {
+        //clientside = new ClientGUI("localhost", 5000);
+        chatTextArea.setText("Welcome to the Chat Box\n");
+        chatTextArea.requestFocus();
         // ok it is a connection request
         String username = usernameField.getText().trim();
         // empty username ignore it
@@ -208,26 +214,33 @@ public class ClientGUI extends javax.swing.JFrame{
         }
 
         // try creating a new Client with GUI
-        Client client = new Client(server, port, username, this);
+        client = new Client(server, port, username, this);
         // test if we can start the Client
-        if(!client.start()) {
-            return;
-        }
+        if(!client.start()) 
+        return;
+        connected = true;
       }
     }//GEN-LAST:event_connectBtnActionPerformed
 
     private void DisBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DisBtnActionPerformed
-        // TODO add your handling code here:
 
+    client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
     }//GEN-LAST:event_DisBtnActionPerformed
 
     private void sendBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendBtnActionPerformed
-        // TODO add your handling code here:
-
+    if(connected) 
+     {
+        // just have to send the message
+       client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, inputTextArea.getText()));				
+       inputTextArea.setText("");
+       return;
+     }
     }//GEN-LAST:event_sendBtnActionPerformed
 
     private void onlineUsersActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onlineUsersActionPerformed
-        // TODO add your handling code here:
+     
+    client.sendMessage(new ChatMessage(ChatMessage.WHOISIN, ""));				
+    return;  
     }//GEN-LAST:event_onlineUsersActionPerformed
 
     /**
@@ -263,8 +276,7 @@ public class ClientGUI extends javax.swing.JFrame{
             public void run() {
                 new ClientGUI().setVisible(true);
             }
-        });
-        new ClientGUI("localhost", 5000);
+        });  new ClientGUI("localhost", 1500);    
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

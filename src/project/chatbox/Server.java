@@ -4,20 +4,47 @@
  */
 package project.chatbox;
 
+import java.net.Socket;
+
 /**
  *
  * @author tanxinyii
  */
 public class Server {
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        // TODO code application logic here
-        System.out.println("Hello");
-        System.out.println("hi firend");
-        System.out.println("hi HIHIHI");
+    private int port;
+    private boolean keepGoing;
+
+    Server(int port, ServerGUI aThis) {
+        this.port = port;
+    }
+
+    private Server(int port) {
+        this(port,null);
+    }
+
+    public void start(){
+        keepGoing = true;
+        System.out.println("Connection Established!!");      
+    }
+    
+    public void stop(){
+        keepGoing = false;
+        System.out.println("Connection Closed!!");
+        try 
+        {
+            new Socket("localhost", port);
+	}
+            catch(Exception e) 
+        {
+            //stop
+	}
+        
+    }
+     
+    public static void main(String[] args){
+        // TODO code application logic her
+        new ServerGUI().setVisible(true);
     }
     
 }
