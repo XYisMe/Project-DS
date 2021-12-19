@@ -19,13 +19,13 @@ public class Server extends Frame implements ActionListener, Runnable{
 
     //declaration
     Client client;
-    private final int port = 8080;
+    int port = 8080;
     ServerSocket serverSocket;
     Socket skt;
     
-    Label status;
+    Label status,connection;
     List chat;
-    Panel controlPanel;
+    Panel controlPanel1, controlPanel2;
     TextField message;
     Button send,exit;
     BufferedReader br;
@@ -42,29 +42,36 @@ public class Server extends Frame implements ActionListener, Runnable{
     
     public void controlPanel(){
         status = new Label("Status");
+        connection = new Label("(No Client Connected)");
         chat = new List();
         message = new TextField(50);
-        controlPanel = new Panel();
+        controlPanel1 = new Panel();
+        controlPanel2 = new Panel();
         send = new Button("Send");
         exit = new Button("Exit");
         
         //add control to the panel
-        controlPanel.setLayout(new FlowLayout());
-        controlPanel.add(message);
-        controlPanel.add(send);
-        controlPanel.add(exit);
+        controlPanel1.setLayout(new FlowLayout());
+        controlPanel1.add(message);
+        controlPanel1.add(send);
+        controlPanel1.add(exit);
+        
+        controlPanel2.setLayout(new FlowLayout());
+        controlPanel2.add(status);
+        controlPanel2.add(connection);
+
 
         //add to Frame
-        add(status, BorderLayout.NORTH);
+        add(controlPanel2, BorderLayout.NORTH);
         add(chat, BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.SOUTH);
+        add(controlPanel1, BorderLayout.SOUTH);
 
         //click listener
         send.addActionListener(this);
         exit.addActionListener(this);
         
-        setSize(600, 400);
-        setLocation(50, 100);
+        setSize(800, 400);
+        setLocation(50, 50);
         setBackground (Color.decode("#E8B16D"));
         setVisible(true);
     }
@@ -72,13 +79,18 @@ public class Server extends Frame implements ActionListener, Runnable{
     public void listen(){
         try{
             serverSocket = new ServerSocket(port);
-            status.setText("Listening on Port: " + port);
+            status.setText("Listening on IP: "+serverSocket.getInetAddress().getHostName()+", Port: " + port );
+            connection.setText("(No Client Connected)");
             skt = serverSocket.accept();
             br = new BufferedReader(new InputStreamReader(skt.getInputStream()));
             bw = new BufferedWriter(new OutputStreamWriter(skt.getOutputStream()));
+            
             bw.write("Hi! Welcome to Chat-RELAX!!");
             bw.newLine();
             bw.flush();
+                     
+           
+            
             Thread th;
             th = new Thread(this);
             th.start();
@@ -92,6 +104,7 @@ public class Server extends Frame implements ActionListener, Runnable{
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        
         if(e.getSource().equals(exit)){
             System.exit(0);
         }else{
@@ -100,9 +113,9 @@ public class Server extends Frame implements ActionListener, Runnable{
                 bw.write(message.getText());
                 bw.newLine();
                 bw.flush();
-
-                chat.add("Admin:    " + message.getText());
+                chat.add("Admin: " + message.getText());
                 message.setText("");
+                
 
             }catch (IOException ioe){
                 status.setText(ioe.getMessage());
@@ -113,10 +126,10 @@ public class Server extends Frame implements ActionListener, Runnable{
     @Override
     public void run() {
         try{
-            skt.setSoTimeout(3000);
+            skt.setSoTimeout(1000);
         }catch (Exception e){}
 
-        status.setText("- Client Connected -");
+        connection.setText("(Client Connected)");
         while(true){
             try{
                 String msgA = br.readLine();
@@ -124,7 +137,9 @@ public class Server extends Frame implements ActionListener, Runnable{
                     serverSocket.close();
                     break;
                 }
-                chat.add(client.name.getText()+": "+ msgA);
+                
+                chat.add("Client: "+ msgA);
+                
             }catch(IOException ioe){}
         }
 

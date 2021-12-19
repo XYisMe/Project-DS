@@ -19,32 +19,47 @@ public class Client extends Frame implements ActionListener, Runnable{
     Socket skt;
     Panel topCP, bottomCP;
     List chatList;
-    TextField name, port, message;
+    Label username, ip, portNo;
+    TextField iptext, port, message;
+    public TextField name;
     Button connect, send, exit;
     BufferedWriter bw;
     BufferedReader br;
     Thread thread;
+    
+
      
      public Client (String string){
           super(string);
           topControlPanel();
           bottomControlPanel();
 
-          setSize(600, 400);
-          setLocation(700, 100);
+          setSize(800, 400);
+          setLocation(50, 250);
           setBackground (Color.decode("#D8BE7E"));
           setVisible(true);
+          
      }
+
 
      public void topControlPanel(){
           topCP = new Panel();
+          username = new Label("Username");
+          ip = new Label("IP address");
+          portNo = new Label("Port");
+          
           name = new TextField(20);
+          iptext = new TextField(10);
           port = new TextField(5);
           connect = new Button("Connect");
           chatList = new List();
 
           //add into Panel
+          topCP.add(username);
           topCP.add(name);
+          topCP.add(ip);
+          topCP.add(iptext);
+          topCP.add(portNo);
           topCP.add(port);
           topCP.add(connect);
 
@@ -60,7 +75,7 @@ public class Client extends Frame implements ActionListener, Runnable{
 
      public void bottomControlPanel(){
           bottomCP = new Panel();
-          message = new TextField(20);
+          message = new TextField(50);
           send = new Button("Send");
           exit = new Button("Exit");
 
@@ -78,20 +93,21 @@ public class Client extends Frame implements ActionListener, Runnable{
 
 
      }
-
-
-    @Override
+     
+     @Override
     public void actionPerformed(ActionEvent e) {
+        String user = name.getText();
+        
         if(e.getSource().equals(exit)){
              System.exit(0);
         }else if (e.getSource().equals(connect)){
 
+           
              try{
-                  skt = new Socket(name.getText(), Integer.parseInt(port.getText()));
+                  skt = new Socket(iptext.getText(), Integer.parseInt(port.getText()));
                   bw = new BufferedWriter (new OutputStreamWriter(skt.getOutputStream()));
                   br = new BufferedReader (new InputStreamReader(skt.getInputStream()));
-                  name.setText(name.getText());
-
+                  
                   thread = new Thread (this);
                   thread.start();
 
@@ -100,11 +116,12 @@ public class Client extends Frame implements ActionListener, Runnable{
              }
         }else {
              try{
-                  if(bw != null){
+                  
+                 if(bw != null){
                        bw.write(message.getText());
                        bw.newLine();
                        bw.flush();
-                       chatList.add("You: " + message.getText());
+                       chatList.add(user+ ": " + message.getText());
                        message.setText("");
                   }
              }catch(IOException ioe){
@@ -114,26 +131,28 @@ public class Client extends Frame implements ActionListener, Runnable{
     }
 
     @Override
-    public void run() {
-        try{
-             skt.setSoTimeout(1000);
-        }catch(Exception e){
-             e.getMessage();
+     public void run() {
+        try {
+            skt.setSoTimeout(1);
+        } catch (Exception e) {
+            iptext.setText(e.getMessage());
         }
-
-        while (true){
-             try{
-                  String msg = br.readLine();
-                  if(msg == null){
-                       break;
-                  }
-                  chatList.add("Admin: " + msg);
-             }catch (Exception e){}
+        while (true) {
+            try {
+                String message = br.readLine();
+                if(message == null) {
+                    break;
+                }
+                chatList.add("Admin: " + message);
+            } catch (Exception e) {
+                
+            }            
         }
     }
-
+     
     public static void main(String[] args){
          new Client("Client Chat Box");
      }
+
     
 }
