@@ -1,158 +1,206 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package project.chatbox;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.net.*;
 import java.io.*;
-import java.net.Socket;
+import java.util.*;
 
-/**
- *
- * @author hor_s
- */
-public class Client extends Frame implements ActionListener, Runnable{
+public class Client  {
 
-    Socket skt;
-    Panel topCP, bottomCP;
-    List chatList;
-    Label username, ip, portNo;
-    TextField iptext, port, message;
-    public TextField name;
-    Button connect, send, exit;
-    BufferedWriter bw;
-    BufferedReader br;
-    Thread thread;
-    
+	private ObjectInputStream fromClient;		// to read from the socket
+	private ObjectOutputStream toServer;		// to write on the socket
+	private Socket socket;
+	private ClientGUI cg;
+	private String server, username;
+	private int port;
 
-     
-     public Client (String string){
-          super(string);
-          topControlPanel();
-          bottomControlPanel();
+	Client(String server, int port, String username) {
+		// which calls the common constructor with the GUI set to null
+		this(server, port, username, null);
+	}
 
-          setSize(800, 400);
-          setLocation(50, 250);
-          setBackground (Color.decode("#D8BE7E"));
-          setVisible(true);
-          
-     }
+	/*
+	 * Constructor call when used from a GUI
+	 * in console mode the ClienGUI parameter is null
+	 */
+	Client(String server, int port, String username, ClientGUI cg) {
+		this.server = server;
+		this.port = port;
+		this.username = username;
+		this.cg = cg;
+	}
+	
+	public boolean start() {
+		// try to connect to the server
+		try {
+			socket = new Socket(server, port);
+		} 
+		// if it failed not much I can so
+		catch(Exception ec) {
+			display("Error connectiong to server:" + ec);
+			return false;
+		}
+		
+		String msg = "Connection accepted " + socket.getInetAddress() + ":" + socket.getPort();
+		display(msg);
+	
+		try
+		{
+			fromClient  = new ObjectInputStream(socket.getInputStream());
+			toServer = new ObjectOutputStream(socket.getOutputStream());
+		}
+		catch (IOException eIO) {
+			display("Exception creating new Input/output Streams: ");
+			return false;
+		}
 
+		// creates the Thread to listen from the server 
+		new ListenFromServer().start(); //create Thread
+		// Send our username to the server this is the only message that we
+		// will send as a String. All other messages will be ChatMessage objects
+		try
+		{
+			toServer.writeObject(username);
+		}
+		catch (IOException eIO) {
+			display("Exception doing login : " );
+			disconnect();
+			return false;
+		}
+		// success we inform the caller that it worked
+		return true;
+	}
 
-     public void topControlPanel(){
-          topCP = new Panel();
-          username = new Label("Username");
-          ip = new Label("IP address");
-          portNo = new Label("Port");
-          
-          name = new TextField(20);
-          iptext = new TextField(10);
-          port = new TextField(5);
-          connect = new Button("Connect");
-          chatList = new List();
+	/*
+	 * To send a message to the console or the GUI
+	 */
+	private void display(String msg) {
+		if(cg == null)
+			System.out.println(msg);      // println in console mode
+		else
+			cg.append(msg + "\n");		// append to the ClientGUI JTextArea (or whatever)
+	}
+	
+	/*
+	 * To send a message to the server
+	 */
+	void sendMessage(ChatMessage msg) {
+		try {
+			toServer.writeObject(msg);
+		}
+		catch(IOException e) {
+			display("Exception writing to server: ");
+		}
+	}
 
-          //add into Panel
-          topCP.add(username);
-          topCP.add(name);
-          topCP.add(ip);
-          topCP.add(iptext);
-          topCP.add(portNo);
-          topCP.add(port);
-          topCP.add(connect);
+	/*
+	 * When something goes wrong
+	 * Close the Input/Output streams and disconnect not much to do in the catch clause
+	 */
+	private void disconnect() {
+		try { 
+			if(fromClient != null) fromClient.close();
+		}
+		catch(Exception e) {} // not much else I can do
+		try {
+			if(toServer != null) toServer.close();
+		}
+		catch(Exception e) {} // not much else I can do
+        try{
+			if(socket != null) socket.close();
+		}
+		catch(Exception e) {} // not much else I can do
+		
+		// inform the GUI
+		if(cg != null)
+			cg.connectionFailed();
+			
+	}
 
-          //set location of elements
-          add(topCP, BorderLayout.NORTH);
-          add(chatList, BorderLayout.CENTER);
+	public static void main(String[] args) {
+		// default values
+		int portNumber = 8080;
+		String serverAddress = "localhost";
+		String userName = "";
 
-          //CLICK LISTENER
-          connect.addActionListener(this);
+		// depending of the number of arguments provided we fall through
+		switch(args.length) {
+			// > javac Client username portNumber serverAddr
+			case 3:
+				serverAddress = args[2];
+			// > javac Client username portNumber
+			case 2:
+				try {
+					portNumber = Integer.parseInt(args[1]);
+				}
+				catch(Exception e) {
+					System.out.println("Invalid port number.");
+					System.out.println("Usage is: > java Client [username] [portNumber] [serverAddress]");
+					return;
+				}
+			// > javac Client username
+			case 1: 
+				userName = args[0];
+			// > java Client
+			case 0:
+				break;
+			// invalid number of arguments
+			default:
+				System.out.println("Usage is: > java Client [username] [portNumber] {serverAddress]");
+			return;
+		}
+		// create the Client object
+		Client client = new Client(serverAddress, portNumber, userName);
+		// test if we can start the connection to the Server
+		// if it failed nothing we can do
+		if(!client.start())
+			return;
+		
+		// wait for messages from user
+		Scanner scan = new Scanner(System.in);
+		// loop forever for message from the user
+		while(true) {
+			System.out.print("> ");
+			// read message from user
+			String msg = scan.nextLine();
+			// logout if message is LOGOUT
+			if(msg.equalsIgnoreCase("LOGOUT")) {
+				client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
+				// break to do the disconnect
+				break;
+			}
+			// message WhoIsIn
+			else if(msg.equalsIgnoreCase("WHOISIN")) {
+				client.sendMessage(new ChatMessage(ChatMessage.ONLINE, ""));				
+			}
+			else {				// default to ordinary message
+				client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, msg));
+			}
+		}
+		// done disconnect
+		client.disconnect();	
+	}
 
+	/*
+	 * a class that waits for the message from the server and append them to the JTextArea
+	 * if we have a GUI or simply System.out.println() it in console mode
+	 */
+	class ListenFromServer extends Thread {
 
-     }
-
-     public void bottomControlPanel(){
-          bottomCP = new Panel();
-          message = new TextField(50);
-          send = new Button("Send");
-          exit = new Button("Exit");
-
-          //add into panel
-          bottomCP.add(message);
-          bottomCP.add(send);
-          bottomCP.add(exit);
-
-          //set location of elements
-          add(bottomCP, BorderLayout.SOUTH);
-
-          //CLICK LISTENER
-          send.addActionListener(this);
-          exit.addActionListener(this);
-
-
-     }
-     
-     @Override
-    public void actionPerformed(ActionEvent e) {
-        String user = name.getText();
-        
-        if(e.getSource().equals(exit)){
-             System.exit(0);
-        }else if (e.getSource().equals(connect)){
-
-           
-             try{
-                  skt = new Socket(iptext.getText(), Integer.parseInt(port.getText()));
-                  bw = new BufferedWriter (new OutputStreamWriter(skt.getOutputStream()));
-                  br = new BufferedReader (new InputStreamReader(skt.getInputStream()));
-                  
-                  thread = new Thread (this);
-                  thread.start();
-
-             }catch (IOException ioe){
-                  ioe.getMessage();
-             }
-        }else {
-             try{
-                  
-                 if(bw != null){
-                       bw.write(message.getText());
-                       bw.newLine();
-                       bw.flush();
-                       chatList.add(user+ ": " + message.getText());
-                       message.setText("");
-                  }
-             }catch(IOException ioe){
-                       ioe.getMessage();
-             }
-        }
-    }
-
-    @Override
-     public void run() {
-        try {
-            skt.setSoTimeout(1);
-        } catch (Exception e) {
-            iptext.setText(e.getMessage());
-        }
-        while (true) {
-            try {
-                String message = br.readLine();
-                if(message == null) {
-                    break;
-                }
-                chatList.add("Admin: " + message);
-            } catch (Exception e) {
-                
-            }            
-        }
-    }
-     
-    public static void main(String[] args){
-         new Client("Client Chat Box");
-     }
-
-    
+		public void run() {
+			while(true) {
+				try {
+					String msg = (String) fromClient.readObject();
+						cg.append(msg);
+				}
+				catch(IOException e) {
+					display("Server has close the connection: " + e);
+					if(cg != null) 
+						cg.connectionFailed();
+					break;
+				}
+				catch(ClassNotFoundException e2) {
+				}
+			}
+		}
+	}
 }
