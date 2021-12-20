@@ -3,30 +3,29 @@ package project.chatbox;
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.text.SimpleDateFormat;
 
 public class Client  {
 
-	private ObjectInputStream fromClient;		// to read from the socket
-	private ObjectOutputStream toServer;		// to write on the socket
+	private ObjectInputStream fromServer;// to read from server socket
+	private ObjectOutputStream toServer;// to write on the serversocket
 	private Socket socket;
-	private ClientGUI cg;
+        private SimpleDateFormat sdf; // to display time
+	private ClientGUI cvg;
 	private String server, username;
 	private int port;
 
-	Client(String server, int port, String username) {
-		// which calls the common constructor with the GUI set to null
-		this(server, port, username, null);
+
+	Client(String server, int port, String username) {	
+            this(server, port, username, null);// calls the common constructor and GUI set to null
 	}
 
-	/*
-	 * Constructor call when used from a GUI
-	 * in console mode the ClienGUI parameter is null
-	 */
-	Client(String server, int port, String username, ClientGUI cg) {
+	Client(String server, int port, String username, ClientGUI cvg) {
 		this.server = server;
+                sdf = new SimpleDateFormat("HH:mm:ss");
 		this.port = port;
 		this.username = username;
-		this.cg = cg;
+		this.cvg = cvg;
 	}
 	
 	public boolean start() {
@@ -34,9 +33,7 @@ public class Client  {
 		try {
 			socket = new Socket(server, port);
 		} 
-		// if it failed not much I can so
 		catch(Exception ec) {
-			display("Error connectiong to server:" + ec);
 			return false;
 		}
 		
@@ -45,11 +42,10 @@ public class Client  {
 	
 		try
 		{
-			fromClient  = new ObjectInputStream(socket.getInputStream());
+			fromServer  = new ObjectInputStream(socket.getInputStream());
 			toServer = new ObjectOutputStream(socket.getOutputStream());
 		}
 		catch (IOException eIO) {
-			display("Exception creating new Input/output Streams: ");
 			return false;
 		}
 
@@ -62,7 +58,6 @@ public class Client  {
 			toServer.writeObject(username);
 		}
 		catch (IOException eIO) {
-			display("Exception doing login : " );
 			disconnect();
 			return false;
 		}
@@ -70,60 +65,49 @@ public class Client  {
 		return true;
 	}
 
-	/*
-	 * To send a message to the console or the GUI
-	 */
-	private void display(String msg) {
-		if(cg == null)
-			System.out.println(msg);      // println in console mode
-		else
-			cg.append(msg + "\n");		// append to the ClientGUI JTextArea (or whatever)
-	}
+
+    private void display(String msg) {
+        String time = sdf.format(new Date()) + " " + msg;
+        cvg.append(time + msg + "\n");
+    }
 	
-	/*
-	 * To send a message to the server
-	 */
 	void sendMessage(ChatMessage msg) {
 		try {
-			toServer.writeObject(msg);
+                    String time = sdf.format(new Date());
+                    String msgChat = time + " " + msg + "\n";	
+                    toServer.writeObject(msgChat);
 		}
 		catch(IOException e) {
-			display("Exception writing to server: ");
 		}
 	}
 
-	/*
-	 * When something goes wrong
-	 * Close the Input/Output streams and disconnect not much to do in the catch clause
-	 */
 	private void disconnect() {
 		try { 
-			if(fromClient != null) fromClient.close();
+			if(fromServer!= null) fromServer.close();
 		}
-		catch(Exception e) {} // not much else I can do
+		catch(Exception e) {} 
 		try {
 			if(toServer != null) toServer.close();
 		}
-		catch(Exception e) {} // not much else I can do
+		catch(Exception e) {} 
         try{
 			if(socket != null) socket.close();
 		}
 		catch(Exception e) {} // not much else I can do
 		
-		// inform the GUI
-		if(cg != null)
-			cg.connectionFailed();
+		if(cvg != null)
+			cvg.connectionFailed();
 			
 	}
 
-	public static void main(String[] args) {
-		// default values
-		int portNumber = 8080;
-		String serverAddress = "localhost";
-		String userName = "";
+        public static void main(String[] args) {
+            // default values
+            int portNumber = 8080;
+            String serverAddress = "localhost";
+            String userName = "";
 
-		// depending of the number of arguments provided we fall through
-		switch(args.length) {
+            // depending of the number of arguments provided we fall through
+            switch(args.length) {
 			// > javac Client username portNumber serverAddr
 			case 3:
 				serverAddress = args[2];
@@ -169,33 +153,35 @@ public class Client  {
 				break;
 			}
 			// message WhoIsIn
-			else if(msg.equalsIgnoreCase("WHOISIN")) {
+			else if(msg.equalsIgnoreCase("ONLINE")) {
 				client.sendMessage(new ChatMessage(ChatMessage.ONLINE, ""));				
 			}
 			else {				// default to ordinary message
 				client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, msg));
 			}
 		}
-		// done disconnect
 		client.disconnect();	
 	}
+                
 
-	/*
-	 * a class that waits for the message from the server and append them to the JTextArea
-	 * if we have a GUI or simply System.out.println() it in console mode
-	 */
+	
+	//a class that waits for the message from the server and append them to the JTextArea
+	 
 	class ListenFromServer extends Thread {
 
 		public void run() {
 			while(true) {
 				try {
-					String msg = (String) fromClient.readObject();
-						cg.append(msg);
+					String msg = (String) fromServer.readObject();
+
+						cvg.append(msg);
+
+					
 				}
 				catch(IOException e) {
 					display("Server has close the connection: " + e);
-					if(cg != null) 
-						cg.connectionFailed();
+					if(cvg != null) 
+						cvg.connectionFailed();
 					break;
 				}
 				catch(ClassNotFoundException e2) {
