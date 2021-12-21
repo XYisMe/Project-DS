@@ -9,12 +9,7 @@ import java.io.*;
  */
 public class Messages implements Serializable {
 
-	protected static final long serialVersionUID = 1112122200L;
-
-	// The different types of message sent by the Client
-	// ONLINE to receive the list of the users connected
-	// MESSAGE an ordinary message
-	// LOGOUT to disconnect from the Server
+	protected static final long serialVersionUID = 1L;
 	static final int ONLINE = 0, MESSAGE = 1, LOGOUT = 2;
 	private int type;
 	private String message;
