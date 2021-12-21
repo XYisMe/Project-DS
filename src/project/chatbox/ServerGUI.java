@@ -3,6 +3,8 @@ package project.chatbox;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /*
  * The server as a GUI
@@ -10,75 +12,82 @@ import java.awt.event.*;
 public class ServerGUI extends JFrame implements ActionListener, WindowListener {
 	
 	private static final long serialVersionUID = 1L;
-	private JButton stopStart;
-	private JTextArea chat, event;
-	private JTextField tPortNumber;
+	private JButton stop, start;
+	private JTextArea chat, activity;
+	private JTextField portTxt;
+        private SimpleDateFormat sdf;
 	private Server server;
 	
 	
 	ServerGUI(int port) {
-		super("Chat Server");
+		super("Server");
 		server = null;
 		JPanel north = new JPanel();
 		north.add(new JLabel("Port number: "));
-		tPortNumber = new JTextField("  " + port);
-		north.add(tPortNumber);
-		stopStart = new JButton("Start");
-		stopStart.addActionListener(this);
-		north.add(stopStart);
+		portTxt = new JTextField("  " + port);
+		north.add(portTxt);
+		start = new JButton("Start");
+		start.addActionListener(this);
+		north.add(start);
+                
+                stop = new JButton("Stop");
+		stop.addActionListener(this);
+                north.add(stop);
 		add(north, BorderLayout.NORTH);
 		
-		JPanel center = new JPanel(new GridLayout(2,1));
-		chat = new JTextArea(80,80);
+		JPanel center = new JPanel(new GridLayout(1,2));
+		activity = new JTextArea(80,80);
+		activity.setEditable(false);
+		appendActivity("Activity log\n");
+                chat = new JTextArea(80,80);
 		chat.setEditable(false);
-		appendRoom("Chat room.\n");
+		appendRoom("Chat Log\n");
 		center.add(new JScrollPane(chat));
-		event = new JTextArea(80,80);
-		event.setEditable(false);
-		appendEvent("Events log.\n");
-		center.add(new JScrollPane(event));	
+		center.add(new JScrollPane(activity));	
 		add(center);
 		
 		addWindowListener(this);
-		setSize(400, 600);
+		setSize(800, 400);
 		setVisible(true);
 	}		
 
-
+	void appendActivity(String str) {
+		activity.append(str);
+		activity.setCaretPosition(activity.getText().length() - 1);
+		
+	}
+        
 	void appendRoom(String str) {
 		chat.append(str);
 		chat.setCaretPosition(chat.getText().length() - 1);
-	}
-	void appendEvent(String str) {
-		event.append(str);
-		event.setCaretPosition(chat.getText().length() - 1);
-		
-	}
-	
+	}	
+        
 	public void actionPerformed(ActionEvent e) {
-
-            if(server != null) {
-			
-                server.stop();
-                server = null;
-		tPortNumber.setEditable(true);
-		stopStart.setText("Start");
-		return;
-            }
-            int port;
-            try {
-			port = Integer.parseInt(tPortNumber.getText().trim());
-		}catch(Exception er) {
-			appendEvent("Invalid port number");
+           Object o = e.getSource();
+           if( o == start)
+           {            
+                int port;
+		try {
+			port = Integer.parseInt(portTxt.getText().trim());
+		}
+		catch(Exception er) {
+			appendActivity("Invalid port number");
 			return;
 		}
-            
 		// ceate a new Server
 		server = new Server(port, this);
 		// and start it as a thread
 		new ServerRunning().start();
-		stopStart.setText("Stop");
-		tPortNumber.setEditable(false);
+		portTxt.setEditable(false); //server start and cannot change port number
+                return;
+           }
+           if(o == stop)
+           {
+               server.stop();
+               server = null;
+               portTxt.setEditable(true);
+               return;
+           }        
 	}
 	
 	// entry point to start the Server
@@ -111,9 +120,10 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
 	class ServerRunning extends Thread {
 		public void run() {
 			server.start();         
-			stopStart.setText("Start");
-			tPortNumber.setEditable(true);
-			appendEvent("Server crashed\n");
+			portTxt.setEditable(true);
+                        sdf = new SimpleDateFormat("HH:mm:ss");
+                        String time = sdf.format(new Date());
+			appendActivity( time + " ****Server has stopped****\n");
 			server = null;
 		}
 	}

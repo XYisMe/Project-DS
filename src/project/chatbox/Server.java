@@ -8,7 +8,7 @@ import java.util.*;
 public class Server {
 	
 	private static int uniqueId;
-	private ArrayList<ClientThread> al;
+	private ArrayList<ClientThread> arrayL;
 	private ServerGUI sg;
 	private SimpleDateFormat sdf;
 	private int port;
@@ -23,7 +23,7 @@ public class Server {
 		this.sg = sg;
 		this.port = port;
 		sdf = new SimpleDateFormat("HH:mm:ss");
-		al = new ArrayList<ClientThread>();
+		arrayL = new ArrayList<ClientThread>();
 	}
 	
 	public void start() {
@@ -31,29 +31,29 @@ public class Server {
 		/* create socket server and wait for connection requests */
 		try 
 		{
-			ServerSocket serverSocket = new ServerSocket(port);
+			ServerSocket svrSocket = new ServerSocket(port);
 
 			while(keepGoing) 
 			{
 				// format message saying we are waiting
 				display("Server waiting for Clients on port " + port + ".");
 				
-				Socket socket = serverSocket.accept();  	
+				Socket skt = svrSocket.accept();  	
 
                                 if(!keepGoing)
 					break;
-				ClientThread t = new ClientThread(socket);
-				al.add(t);
+				ClientThread t = new ClientThread(skt);
+				arrayL.add(t);
 				t.start();
 			}
 
                         try {
-				serverSocket.close();
-				for(int i = 0; i < al.size(); ++i) {
-					ClientThread tc = al.get(i);
+				svrSocket.close();
+				for(int i = 0; i < arrayL.size(); ++i) {
+					ClientThread tc = arrayL.get(i);
 					try {
-					tc.sInput.close();
-					tc.sOutput.close();
+					tc.fromClient.close();
+					tc.toClient.close();
 					tc.socket.close();
 					}
 					catch(IOException ioE) {
@@ -88,7 +88,7 @@ public class Server {
 		if(sg == null)
 			System.out.println(time);
 		else
-			sg.appendEvent(time + "\n");
+			sg.appendActivity(time + "\n");
 	}
 
         //broadcast
@@ -104,11 +104,11 @@ public class Server {
 		
 		// we loop in reverse order in case we would have to remove a Client
 		// because it has disconnected
-		for(int i = al.size(); --i >= 0;) {
-			ClientThread ct = al.get(i);
+		for(int i = arrayL.size(); --i >= 0;) {
+			ClientThread ct = arrayL.get(i);
 			// try to write to the Client if it fails remove it from the list
 			if(!ct.writeMsg(messageLf)) {
-				al.remove(i);
+				arrayL.remove(i);
 				display("Disconnected Client " + ct.username + " removed from list.");
                 }
                 
@@ -119,11 +119,11 @@ public class Server {
 	// for a client who logoff using the LOGOUT message
 	synchronized void remove(int id) {
 		// scan the array list until we found the Id
-		for(int i = 0; i < al.size(); ++i) {
-			ClientThread ct = al.get(i);
+		for(int i = 0; i < arrayL.size(); ++i) {
+			ClientThread ct = arrayL.get(i);
 			// found it
 			if(ct.id == id) {
-				al.remove(i);
+				arrayL.remove(i);
 				return;
 			}
 		}
@@ -131,11 +131,11 @@ public class Server {
 	
 
 	public static void main(String[] args) {
-		int portNumber = 8080;
+		int portNo = 8080;
 		switch(args.length) {
 			case 1:
 				try {
-					portNumber = Integer.parseInt(args[0]);
+					portNo = Integer.parseInt(args[0]);
 				}
 				catch(Exception e) {
 					System.out.println("Invalid port number.");
@@ -150,18 +150,18 @@ public class Server {
 				
 		}
 
-                Server server = new Server(portNumber);
+                Server server = new Server(portNo);
 		server.start();
 	}
 
 	class ClientThread extends Thread {
 
             Socket socket;
-            ObjectInputStream sInput;
-            ObjectOutputStream sOutput;
+            ObjectInputStream fromClient;
+            ObjectOutputStream toClient;
             int id;
             String username;
-            ChatMessage cm;
+            Messages msgs;
             String date;
 
 		ClientThread(Socket socket) {
@@ -171,9 +171,9 @@ public class Server {
 			System.out.println("Thread trying to create Object Input/Output Streams");
 			try
 			{
-				sOutput = new ObjectOutputStream(socket.getOutputStream());
-				sInput  = new ObjectInputStream(socket.getInputStream());
-				username = (String) sInput.readObject();
+				toClient = new ObjectOutputStream(socket.getOutputStream());
+				fromClient  = new ObjectInputStream(socket.getInputStream());
+				username = (String) fromClient.readObject();
 				display(username + " just connected.");
 			}
 			catch (IOException e) {
@@ -192,7 +192,7 @@ public class Server {
 			while(keepGoing) {
 				// read a String (which is an object)
 				try {
-					cm = (ChatMessage) sInput.readObject();
+					msgs = (Messages) fromClient.readObject();
 				}
 				catch (IOException e) {
 					display(username + " Exception reading Streams: " + e);
@@ -201,21 +201,21 @@ public class Server {
 				catch(ClassNotFoundException e2) {
 					break;
 				}
-				String message = cm.getMessage();
+				String message = msgs.getMessage();
 
-				switch(cm.getType()) {
+				switch(msgs.getType()) {
 
-				case ChatMessage.MESSAGE:
+				case Messages.MESSAGE:
 					broadcast(username + ": " + message);
 					break;
-				case ChatMessage.LOGOUT:
+				case Messages.LOGOUT:
 					display(username + " disconnected with a LOGOUT message.");
 					keepGoing = false;
 					break;
-				case ChatMessage.ONLINE:
+				case Messages.ONLINE:
 					writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
-					for(int i = 0; i < al.size(); ++i) {
-						ClientThread ct = al.get(i);
+					for(int i = 0; i < arrayL.size(); ++i) {
+						ClientThread ct = arrayL.get(i);
 						writeMsg((i+1) + ") " + ct.username + " since " + ct.date);
 					}
 					break;
@@ -229,11 +229,11 @@ public class Server {
 		private void close() {
 			// try to close the connection
 			try {
-				if(sOutput != null) sOutput.close();
+				if(toClient != null) toClient.close();
 			}
 			catch(Exception e) {}
 			try {
-				if(sInput != null) sInput.close();
+				if(fromClient != null) fromClient.close();
 			}
 			catch(Exception e) {};
 			try {
@@ -249,7 +249,7 @@ public class Server {
 				return false;
 			}
 			try {
-				sOutput.writeObject(msg);
+				toClient.writeObject(msg);
 			}
 			catch(IOException e) {
 				display("Error sending message to " + username);

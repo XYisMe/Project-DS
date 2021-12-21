@@ -13,10 +13,10 @@ public class ClientGUI extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	
 	private JLabel label;
-	private JTextField tf;
+	private JTextField enterMsg;
 	private JTextField tfServer, tfPort, tfName;
 	private JButton login, logout, online;
-	private JTextArea ta;
+	private JTextArea chatTextArea;
 	private boolean connected;
 	private Client client;
 	private int defaultPort;
@@ -24,27 +24,27 @@ public class ClientGUI extends JFrame implements ActionListener {
 
 	ClientGUI(String host, int port) {
 
-		super("Chat Client");
+		super("Chat Room");
 		defaultPort = port;
 		defaultHost = host;
 		
 		JPanel northPanel = new JPanel(new GridLayout(4,2,6,10));
-		JPanel serverAndPort = new JPanel(new GridLayout(1,5, 1, 3));
+		JPanel topPanel = new JPanel(new GridLayout(1,5, 1, 3));
 		tfServer = new JTextField(host);
 		tfPort = new JTextField("" + port);
                 tfName = new JTextField("");
                 
 		tfName.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		serverAndPort.add(new JLabel("Server Address:  "));
-		serverAndPort.add(tfServer);
-		serverAndPort.add(new JLabel("Port Number:  "));
-		serverAndPort.add(tfPort);
-                serverAndPort.add(new JLabel("Username: "));
-                serverAndPort.add(tfName);
-		serverAndPort.add(new JLabel(""));
+		topPanel.add(new JLabel("Server Address:  "));
+		topPanel.add(tfServer);
+		topPanel.add(new JLabel("Port Number:  "));
+		topPanel.add(tfPort);
+                topPanel.add(new JLabel("Username: "));
+                topPanel.add(tfName);
+		topPanel.add(new JLabel(""));
 
-                northPanel.add(serverAndPort);
+                northPanel.add(topPanel);
                 
                 login = new JButton("Login");
 		login.addActionListener(this);		
@@ -59,17 +59,16 @@ public class ClientGUI extends JFrame implements ActionListener {
 		northPanel.add(online);               
 		add(northPanel, BorderLayout.NORTH);
 		
-		ta = new JTextArea("Welcome to the Chat room\n", 50, 50);
+		chatTextArea = new JTextArea("Welcome to the Chat room\n", 50, 50);
 		JPanel centerPanel = new JPanel(new GridLayout(1,1));
-		centerPanel.add(new JScrollPane(ta));
-		ta.setEditable(false);
+		centerPanel.add(new JScrollPane(chatTextArea));
+		chatTextArea.setEditable(false);
 		add(centerPanel, BorderLayout.CENTER);
 
 
 		JPanel southPanel = new JPanel(new GridLayout(2,1,5,5));
-		tf = new JTextField("Enter message here");
-		tf.setBackground(Color.WHITE);
-		southPanel.add(tf);
+		enterMsg = new JTextField("Enter message here");
+		southPanel.add(enterMsg);
 		
 
 		add(southPanel, BorderLayout.SOUTH);
@@ -77,13 +76,13 @@ public class ClientGUI extends JFrame implements ActionListener {
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setSize(600, 600);
 		setVisible(true);
-		tf.requestFocus();
+		enterMsg.requestFocus();
 
 	}
 
 	void append(String str) {
-		ta.append(str);
-		ta.setCaretPosition(ta.getText().length() - 1);
+		chatTextArea.append(str);
+		chatTextArea.setCaretPosition(chatTextArea.getText().length() - 1);
 	}
 
         
@@ -96,32 +95,32 @@ public class ClientGUI extends JFrame implements ActionListener {
 		tfServer.setText(defaultHost);
 		tfServer.setEditable(false);
 		tfPort.setEditable(false);
-		tf.removeActionListener(this);
+		enterMsg.removeActionListener(this);
 		connected = false;
 	}
 
         //action for button
 	public void actionPerformed(ActionEvent e) {
 		Object o = e.getSource();
+                String username = tfName.getText().trim();
 		if(o == logout) {
-			client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
-			return;
+                    append(username +" has left the chat room.\n");
+                    client.sendMessage(new Messages(Messages.LOGOUT, ""));
+                    return;
 		}
 		if(o == online) {
-			client.sendMessage(new ChatMessage(ChatMessage.ONLINE, ""));				
-			return;
+                    client.sendMessage(new Messages(Messages.ONLINE, ""));				
+                    return;
 		}
 
 		if(connected) {
-			// just have to send the message
-			client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, tf.getText()));				
-			tf.setText("");
-			return;
+                    
+                    client.sendMessage(new Messages(Messages.MESSAGE, enterMsg.getText()));				
+                    enterMsg.setText("");
+                    return;
 		}
-		
-
 		if(o == login) {
-			String username = tfName.getText().trim();
+                    append(username + " has joined the chat room.\n");
 			if(username.length() == 0)
 				return;
 			String server = tfServer.getText().trim();
@@ -141,7 +140,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 			client = new Client(server, port, username, this);
 			if(!client.start()) 
 				return;
-			tf.setText("");
+			enterMsg.setText("");
 			connected = true;
 			
 			login.setEnabled(false);
@@ -149,7 +148,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 			online.setEnabled(true);
 			tfServer.setEditable(false);
 			tfPort.setEditable(false);
-			tf.addActionListener(this);
+			enterMsg.addActionListener(this);
 		}
 
 	}

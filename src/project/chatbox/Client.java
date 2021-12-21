@@ -6,7 +6,7 @@ import java.util.*;
 
 public class Client  {
 
-	private ObjectInputStream fromClient;		
+	private ObjectInputStream fromServer;		
 	private ObjectOutputStream toServer;
 	private Socket socket;
 	private ClientGUI cg;
@@ -36,12 +36,12 @@ public class Client  {
 			return false;
 		}
 		
-		String msg = "Connection accepted " + socket.getInetAddress() + ":" + socket.getPort();
-		display(msg);
-	
+		String msg = " Connection accepted " + socket.getInetAddress() + ":" + socket.getPort();
+                display(msg);
+                
 		try
 		{
-			fromClient  = new ObjectInputStream(socket.getInputStream());
+			fromServer  = new ObjectInputStream(socket.getInputStream());
 			toServer = new ObjectOutputStream(socket.getOutputStream());
 		}
 		catch (IOException eIO) {
@@ -66,9 +66,7 @@ public class Client  {
 		return true;
 	}
 
-	/*
-	 * To send a message to the console or the GUI
-	 */
+
 	private void display(String msg) {
 		if(cg == null)
 			System.out.println(msg);      // println in console mode
@@ -79,7 +77,7 @@ public class Client  {
 	/*
 	 * To send a message to the server
 	 */
-	void sendMessage(ChatMessage msg) {
+	void sendMessage(Messages msg) {
 		try {
 			toServer.writeObject(msg);
 		}
@@ -94,7 +92,7 @@ public class Client  {
 	 */
 	private void disconnect() {
 		try { 
-			if(fromClient != null) fromClient.close();
+			if(fromServer != null) fromServer.close();
 		}
 		catch(Exception e) {} // not much else I can do
 		try {
@@ -114,21 +112,21 @@ public class Client  {
 
 	public static void main(String[] args) {
 
-            int portNumber = 8080;
-		String serverAddress = "localhost";
+            int portNo = 8080;
+		String svrAdd = "localhost";
 		String userName = "";
 
 		// depending of the number of arguments provided we fall through
 		switch(args.length) {
 			case 3:
-				serverAddress = args[2];
+				svrAdd = args[2];
 			case 2:
 				try {
-					portNumber = Integer.parseInt(args[1]);
+					portNo = Integer.parseInt(args[1]);
 				}
 				catch(Exception e) {
 					System.out.println("Invalid port number.");
-					System.out.println("Usage is: > java Client [username] [portNumber] [serverAddress]");
+					System.out.println("Usage is: > java Client [username] [portNo] [svrAdd]");
 					return;
 				}
 			case 1: 
@@ -136,10 +134,10 @@ public class Client  {
 			case 0:
 				break;
 			default:
-				System.out.println("Usage is: > java Client [username] [portNumber] {serverAddress]");
+				System.out.println("Usage is: > java Client [username] [portNo] {svrAdd]");
 			return;
 		}
-		Client client = new Client(serverAddress, portNumber, userName);
+		Client client = new Client(svrAdd, portNo, userName);
 		
                 
 		if(!client.start())
@@ -153,16 +151,16 @@ public class Client  {
 			String msg = scan.nextLine();
 			// logout if message is LOGOUT
 			if(msg.equalsIgnoreCase("LOGOUT")) {
-				client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
+				client.sendMessage(new Messages(Messages.LOGOUT, ""));
 				// break to do the disconnect
 				break;
 			}
-			// message WhoIsIn
-			else if(msg.equalsIgnoreCase("WHOISIN")) {
-				client.sendMessage(new ChatMessage(ChatMessage.ONLINE, ""));				
+			// message ONLINE
+			else if(msg.equalsIgnoreCase("ONLINE")) {
+				client.sendMessage(new Messages(Messages.ONLINE, ""));				
 			}
 			else {				// default to ordinary message
-				client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, msg));
+				client.sendMessage(new Messages(Messages.MESSAGE, msg));
 			}
 		}
 		// done disconnect
@@ -177,7 +175,7 @@ public class Client  {
 		public void run() {
 			while(true) {
 				try {
-					String msg = (String) fromClient.readObject();
+					String msg = (String) fromServer.readObject();
 						cg.append(msg);
 				}
 				catch(IOException e) {
