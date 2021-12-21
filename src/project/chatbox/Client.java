@@ -1,192 +1,158 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package project.chatbox;
 
-import java.net.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
-import java.util.*;
-import java.text.SimpleDateFormat;
+import java.net.Socket;
 
-public class Client  {
+/**
+ *
+ * @author hor_s
+ */
+public class Client extends Frame implements ActionListener, Runnable{
 
-	private ObjectInputStream fromServer;// to read from server socket
-	private ObjectOutputStream toServer;// to write on the serversocket
-	private Socket socket;
-        private SimpleDateFormat sdf; // to display time
-	private ClientGUI cvg;
-	private String server, username;
-	private int port;
+    Socket skt;
+    Panel topCP, bottomCP;
+    List chatList;
+    Label username, ip, portNo;
+    TextField iptext, port, message;
+    public TextField name;
+    Button connect, send, exit;
+    BufferedWriter bw;
+    BufferedReader br;
+    Thread thread;
+    
 
+     
+     public Client (String string){
+          super(string);
+          topControlPanel();
+          bottomControlPanel();
 
-	Client(String server, int port, String username) {	
-            this(server, port, username, null);// calls the common constructor and GUI set to null
-	}
-
-	Client(String server, int port, String username, ClientGUI cvg) {
-		this.server = server;
-                sdf = new SimpleDateFormat("HH:mm:ss");
-		this.port = port;
-		this.username = username;
-		this.cvg = cvg;
-	}
-	
-	public boolean start() {
-		// try to connect to the server
-		try {
-			socket = new Socket(server, port);
-		} 
-		catch(Exception ec) {
-			return false;
-		}
-		
-		String msg = "Connection accepted " + socket.getInetAddress() + ":" + socket.getPort();
-		display(msg);
-	
-		try
-		{
-			fromServer  = new ObjectInputStream(socket.getInputStream());
-			toServer = new ObjectOutputStream(socket.getOutputStream());
-		}
-		catch (IOException eIO) {
-			return false;
-		}
-
-		// creates the Thread to listen from the server 
-		new ListenFromServer().start(); //create Thread
-		// Send our username to the server this is the only message that we
-		// will send as a String. All other messages will be ChatMessage objects
-		try
-		{
-			toServer.writeObject(username);
-		}
-		catch (IOException eIO) {
-			disconnect();
-			return false;
-		}
-		// success we inform the caller that it worked
-		return true;
-	}
+          setSize(800, 400);
+          setLocation(50, 250);
+          setBackground (Color.decode("#D8BE7E"));
+          setVisible(true);
+          
+     }
 
 
-    private void display(String msg) {
-        String time = sdf.format(new Date()) + " " + msg;
-        cvg.append(time + msg + "\n");
+     public void topControlPanel(){
+          topCP = new Panel();
+          username = new Label("Username");
+          ip = new Label("IP address");
+          portNo = new Label("Port");
+          
+          name = new TextField(20);
+          iptext = new TextField(10);
+          port = new TextField(5);
+          connect = new Button("Connect");
+          chatList = new List();
+
+          //add into Panel
+          topCP.add(username);
+          topCP.add(name);
+          topCP.add(ip);
+          topCP.add(iptext);
+          topCP.add(portNo);
+          topCP.add(port);
+          topCP.add(connect);
+
+          //set location of elements
+          add(topCP, BorderLayout.NORTH);
+          add(chatList, BorderLayout.CENTER);
+
+          //CLICK LISTENER
+          connect.addActionListener(this);
+
+
+     }
+
+     public void bottomControlPanel(){
+          bottomCP = new Panel();
+          message = new TextField(50);
+          send = new Button("Send");
+          exit = new Button("Exit");
+
+          //add into panel
+          bottomCP.add(message);
+          bottomCP.add(send);
+          bottomCP.add(exit);
+
+          //set location of elements
+          add(bottomCP, BorderLayout.SOUTH);
+
+          //CLICK LISTENER
+          send.addActionListener(this);
+          exit.addActionListener(this);
+
+
+     }
+     
+     @Override
+    public void actionPerformed(ActionEvent e) {
+        String user = name.getText();
+        
+        if(e.getSource().equals(exit)){
+             System.exit(0);
+        }else if (e.getSource().equals(connect)){
+
+           
+             try{
+                  skt = new Socket(iptext.getText(), Integer.parseInt(port.getText()));
+                  bw = new BufferedWriter (new OutputStreamWriter(skt.getOutputStream()));
+                  br = new BufferedReader (new InputStreamReader(skt.getInputStream()));
+                  
+                  thread = new Thread (this);
+                  thread.start();
+
+             }catch (IOException ioe){
+                  ioe.getMessage();
+             }
+        }else {
+             try{
+                  
+                 if(bw != null){
+                       bw.write(message.getText());
+                       bw.newLine();
+                       bw.flush();
+                       chatList.add(user+ ": " + message.getText());
+                       message.setText("");
+                  }
+             }catch(IOException ioe){
+                       ioe.getMessage();
+             }
+        }
     }
-	
-	void sendMessage(ChatMessage msg) {
-		try {
-                    String time = sdf.format(new Date());
-                    String msgChat = time + " " + msg + "\n";	
-                    toServer.writeObject(msgChat);
-		}
-		catch(IOException e) {
-		}
-	}
 
-	private void disconnect() {
-		try { 
-			if(fromServer!= null) fromServer.close();
-		}
-		catch(Exception e) {} 
-		try {
-			if(toServer != null) toServer.close();
-		}
-		catch(Exception e) {} 
-        try{
-			if(socket != null) socket.close();
-		}
-		catch(Exception e) {} // not much else I can do
-		
-		if(cvg != null)
-			cvg.connectionFailed();
-			
-	}
-
-        public static void main(String[] args) {
-            // default values
-            int portNumber = 8080;
-            String serverAddress = "localhost";
-            String userName = "";
-
-            // depending of the number of arguments provided we fall through
-            switch(args.length) {
-			// > javac Client username portNumber serverAddr
-			case 3:
-				serverAddress = args[2];
-			// > javac Client username portNumber
-			case 2:
-				try {
-					portNumber = Integer.parseInt(args[1]);
-				}
-				catch(Exception e) {
-					System.out.println("Invalid port number.");
-					System.out.println("Usage is: > java Client [username] [portNumber] [serverAddress]");
-					return;
-				}
-			// > javac Client username
-			case 1: 
-				userName = args[0];
-			// > java Client
-			case 0:
-				break;
-			// invalid number of arguments
-			default:
-				System.out.println("Usage is: > java Client [username] [portNumber] {serverAddress]");
-			return;
-		}
-		// create the Client object
-		Client client = new Client(serverAddress, portNumber, userName);
-		// test if we can start the connection to the Server
-		// if it failed nothing we can do
-		if(!client.start())
-			return;
-		
-		// wait for messages from user
-		Scanner scan = new Scanner(System.in);
-		// loop forever for message from the user
-		while(true) {
-			System.out.print("> ");
-			// read message from user
-			String msg = scan.nextLine();
-			// logout if message is LOGOUT
-			if(msg.equalsIgnoreCase("LOGOUT")) {
-				client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
-				// break to do the disconnect
-				break;
-			}
-			// message WhoIsIn
-			else if(msg.equalsIgnoreCase("ONLINE")) {
-				client.sendMessage(new ChatMessage(ChatMessage.ONLINE, ""));				
-			}
-			else {				// default to ordinary message
-				client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, msg));
-			}
-		}
-		client.disconnect();	
-	}
+    @Override
+     public void run() {
+        try {
+            skt.setSoTimeout(1);
+        } catch (Exception e) {
+            iptext.setText(e.getMessage());
+        }
+        while (true) {
+            try {
+                String message = br.readLine();
+                if(message == null) {
+                    break;
+                }
+                chatList.add("Admin: " + message);
+            } catch (Exception e) {
                 
+            }            
+        }
+    }
+     
+    public static void main(String[] args){
+         new Client("Client Chat Box");
+     }
 
-	
-	//a class that waits for the message from the server and append them to the JTextArea
-	 
-	class ListenFromServer extends Thread {
-
-		public void run() {
-			while(true) {
-				try {
-					String msg = (String) fromServer.readObject();
-
-						cvg.append(msg);
-
-					
-				}
-				catch(IOException e) {
-					display("Server has close the connection: " + e);
-					if(cvg != null) 
-						cvg.connectionFailed();
-					break;
-				}
-				catch(ClassNotFoundException e2) {
-				}
-			}
-		}
-	}
+    
 }
