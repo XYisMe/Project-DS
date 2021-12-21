@@ -6,8 +6,8 @@ import java.util.*;
 
 public class Client  {
 
-	private ObjectInputStream fromClient;		// to read from the socket
-	private ObjectOutputStream toServer;		// to write on the socket
+	private ObjectInputStream fromClient;		
+	private ObjectOutputStream toServer;
 	private Socket socket;
 	private ClientGUI cg;
 	private String server, username;
@@ -17,11 +17,7 @@ public class Client  {
 		// which calls the common constructor with the GUI set to null
 		this(server, port, username, null);
 	}
-
-	/*
-	 * Constructor call when used from a GUI
-	 * in console mode the ClienGUI parameter is null
-	 */
+        
 	Client(String server, int port, String username, ClientGUI cg) {
 		this.server = server;
 		this.port = port;
@@ -117,17 +113,15 @@ public class Client  {
 	}
 
 	public static void main(String[] args) {
-		// default values
-		int portNumber = 8080;
+
+            int portNumber = 8080;
 		String serverAddress = "localhost";
 		String userName = "";
 
 		// depending of the number of arguments provided we fall through
 		switch(args.length) {
-			// > javac Client username portNumber serverAddr
 			case 3:
 				serverAddress = args[2];
-			// > javac Client username portNumber
 			case 2:
 				try {
 					portNumber = Integer.parseInt(args[1]);
@@ -137,28 +131,23 @@ public class Client  {
 					System.out.println("Usage is: > java Client [username] [portNumber] [serverAddress]");
 					return;
 				}
-			// > javac Client username
 			case 1: 
 				userName = args[0];
-			// > java Client
 			case 0:
 				break;
-			// invalid number of arguments
 			default:
 				System.out.println("Usage is: > java Client [username] [portNumber] {serverAddress]");
 			return;
 		}
-		// create the Client object
 		Client client = new Client(serverAddress, portNumber, userName);
-		// test if we can start the connection to the Server
-		// if it failed nothing we can do
+		
+                
 		if(!client.start())
 			return;
 		
 		// wait for messages from user
 		Scanner scan = new Scanner(System.in);
-		// loop forever for message from the user
-		while(true) {
+          	while(true) {
 			System.out.print("> ");
 			// read message from user
 			String msg = scan.nextLine();
@@ -182,7 +171,6 @@ public class Client  {
 
 	/*
 	 * a class that waits for the message from the server and append them to the JTextArea
-	 * if we have a GUI or simply System.out.println() it in console mode
 	 */
 	class ListenFromServer extends Thread {
 
