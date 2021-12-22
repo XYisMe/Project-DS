@@ -76,6 +76,7 @@ public class ClientGUI extends JFrame implements ActionListener {
         add(southPanel, BorderLayout.SOUTH);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocation(800, 0);
         setSize(600, 600);
         setVisible(true);
     }
