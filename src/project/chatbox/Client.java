@@ -21,7 +21,6 @@ public class Client {
     Client(String server, int port, String username, ClientGUI cg) {
         this.server = server;
         this.port = port;
-        this.username = username;
         this.cg = cg;
     }
 
@@ -95,10 +94,11 @@ public class Client {
             return false;
         }
         // creates the Thread to listen from the server       
-        new ListenFromServer().start(); //create Thread
+        new SendToClient().start(); //create Thread
 
-        try {
+        try { //serialize username
             toServer.writeObject(username); // Send our username to the server as String
+            display("Data is being serialized");
         } catch (IOException eIO) {
             display("Exception doing login : ");
             disconnect();
@@ -108,16 +108,15 @@ public class Client {
     }
 
     private void display(String msg) {
-        if (cg == null) {
-            System.out.println(msg); // println in console mode
-        } else {
+
             cg.append(msg + "\n"); // append to the TextArea in GUI
-        }
+        
     }
 
     void sendMessage(Messages msg) { //send message to server
         try {
-            toServer.writeObject(msg);
+            toServer.writeObject(msg); //serialize message
+            display("Data is being serialized");
         } catch (IOException e) {
             display("Exception writing to server: ");
         }
@@ -153,7 +152,7 @@ public class Client {
     /*
 	 * waits for message from the server and append to the JTextArea
      */
-    class ListenFromServer extends Thread {
+    class SendToClient extends Thread {
 
         public void run() {
             while (true) {

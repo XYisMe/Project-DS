@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 /*
  * The Client with its GUI
  */
@@ -19,17 +18,18 @@ public class ClientGUI extends JFrame implements ActionListener {
     private boolean connected;
     private Client client;
     private int defaultPort;
-    private String defaultHost;
+    private String defaultHost; 
 
+     
     ClientGUI(String host, int port) {
 
-        super("Chat Room");
+        super("Chat Room");  //call Client class
         defaultPort = port;
         defaultHost = host;
 
         //NorthPanel
-        JPanel northPanel = new JPanel(new GridLayout(4, 2, 6, 10));
-        JPanel topPanel = new JPanel(new GridLayout(1, 5, 1, 3));
+        JPanel northPanel = new JPanel(new GridLayout(4, 6, 6, 10));
+        JPanel topPanel = new JPanel(new GridLayout(1, 6, 1, 3));
         tfServer = new JTextField(host);
         tfPort = new JTextField("" + port);
         tfName = new JTextField("");
@@ -80,25 +80,6 @@ public class ClientGUI extends JFrame implements ActionListener {
         setVisible(true);
     }
 
-    void append(String str) {
-        chatTextArea.append(str);
-        chatTextArea.setCaretPosition(chatTextArea.getText().length() - 1);
-    }
-
-    void connectionFailed() {
-        login.setEnabled(true);
-        logout.setEnabled(false);
-        online.setEnabled(false);
-
-        tfPort.setText("" + defaultPort);
-        tfServer.setText(defaultHost);
-        tfServer.setEditable(false);
-        tfPort.setEditable(false);
-        enterMsg.removeActionListener(this);
-        send.removeActionListener(this);
-        connected = false;
-    }
-
     public static void main(String[] args) {
         new ClientGUI("localhost", 8080);
     }
@@ -106,23 +87,21 @@ public class ClientGUI extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         Object o = e.getSource();
         String username = tfName.getText().trim();
-        if (o == logout) {
-            append(username + " has left the chat room.\n");
-            client.sendMessage(new Messages(Messages.LOGOUT, ""));
-            return;
-        }
         if (o == online) {
             client.sendMessage(new Messages(Messages.ONLINE, ""));
             return;
         }
-
         if (connected) {
 
             client.sendMessage(new Messages(Messages.MESSAGE, enterMsg.getText()));
             enterMsg.setText("");
             return;
         }
-
+        if (o == logout) {
+            append(username + " has left the chat room.\n");
+            client.sendMessage(new Messages(Messages.LOGOUT, ""));
+            return;
+        }
         if (o == login) {
             append(username + " has joined the chat room.\n");
             if (username.length() == 0) {
@@ -158,4 +137,24 @@ public class ClientGUI extends JFrame implements ActionListener {
             enterMsg.addActionListener(this);
         }
     }
+     
+    void append(String str) {
+        chatTextArea.append(str);
+        chatTextArea.setCaretPosition(chatTextArea.getText().length() - 1);
+    }
+
+    void connectionFailed() {
+        login.setEnabled(true);
+        logout.setEnabled(false);
+        online.setEnabled(false);
+
+        tfPort.setText("" + defaultPort);
+        tfServer.setText(defaultHost);
+        tfServer.setEditable(false);
+        tfPort.setEditable(false);
+        enterMsg.removeActionListener(this);
+        send.removeActionListener(this);
+        connected = false;
+    }
+
 }

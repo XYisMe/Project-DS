@@ -8,7 +8,7 @@ import java.util.*;
 public class Server {
 
     private static int uniqueId;
-    private ArrayList<ClientThread> arrayL;
+    private ArrayList<ThreadA> arrayL; //Client Thread
     private ServerGUI sg;
     private SimpleDateFormat sdf;
     private int port;
@@ -22,14 +22,14 @@ public class Server {
         this.sg = sg;
         this.port = port;
         sdf = new SimpleDateFormat("HH:mm:ss");
-        arrayL = new ArrayList<ClientThread>();
+        arrayL = new ArrayList<ThreadA>();
     }
 
         // for a client who logoff using the LOGOUT message
     synchronized void remove(int id) {
         // scan the array list until we found the Id
         for (int i = 0; i < arrayL.size(); ++i) {
-            ClientThread ct = arrayL.get(i);
+            ThreadA ct = arrayL.get(i);
             // found it
             if (ct.id == id) {
                 arrayL.remove(i);
@@ -75,7 +75,7 @@ public class Server {
                 if (!keepGoing) {
                     break;
                 }
-                ClientThread t = new ClientThread(skt);
+                ThreadA t = new ThreadA(skt);
                 arrayL.add(t);
                 t.start();
             }
@@ -83,7 +83,7 @@ public class Server {
             try {
                 svrSocket.close();
                 for (int i = 0; i < arrayL.size(); ++i) {
-                    ClientThread tc = arrayL.get(i);
+                    ThreadA tc = arrayL.get(i);
                     try {
                         tc.fromClient.close();
                         tc.toClient.close();
@@ -136,7 +136,7 @@ public class Server {
             // we loop in reverse order in case we would have to remove a Client
             // because it has disconnected
             for (int i = arrayL.size(); --i >= 0;) {
-                ClientThread ct = arrayL.get(i);
+                ThreadA ct = arrayL.get(i);
                 // try to write to the Client if it fails remove it from the list
                 if (!ct.writeMsg(messageLf)) {
                     arrayL.remove(i);
@@ -149,7 +149,7 @@ public class Server {
 
 
 
-    class ClientThread extends Thread {
+    class ThreadA extends Thread { //Client Thread
 
         Socket socket;
         ObjectInputStream fromClient;
@@ -159,7 +159,7 @@ public class Server {
         Messages msgs;
         String date;
 
-        ClientThread(Socket socket) {
+        ThreadA(Socket socket) {
             id = ++uniqueId;
             this.socket = socket;
 
@@ -167,7 +167,8 @@ public class Server {
             try {
                 toClient = new ObjectOutputStream(socket.getOutputStream());
                 fromClient = new ObjectInputStream(socket.getInputStream());
-                username = (String) fromClient.readObject();
+                username = (String) fromClient.readObject(); //deserialize username
+                display("Data is being deserialize");
                 display(username + " just connected.");
             } catch (IOException e) {
                 display("Exception creating new Input/output Streams: " + e);
@@ -180,10 +181,10 @@ public class Server {
 
         public void run() {
             boolean keepGoing = true;
-            while (keepGoing) {
-                // read a String (which is an object)
+            while (keepGoing) {              
                 try {
-                    msgs = (Messages) fromClient.readObject();
+                    msgs = (Messages) fromClient.readObject(); // deserialize message (get msg)
+                    display("Data is being deserialize");
                 } catch (IOException e) {
                     display(username + " Exception reading Streams: " + e);
                     break;
@@ -193,21 +194,20 @@ public class Server {
                 String message = msgs.getMessage();
 
                 switch (msgs.getType()) {
-
+                    case Messages.ONLINE:
+                        writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
+                        for (int i = 0; i < arrayL.size(); ++i) {
+                            ThreadA ct = arrayL.get(i);
+                            writeMsg((i + 1) + ") " + ct.username + " since " + ct.date);
+                             break;
+                        }
                     case Messages.MESSAGE:
                         broadcast(username + ": " + message);
                         break;
                     case Messages.LOGOUT:
                         display(username + " disconnected with a LOGOUT message.");
                         keepGoing = false;
-                        break;
-                    case Messages.ONLINE:
-                        writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
-                        for (int i = 0; i < arrayL.size(); ++i) {
-                            ClientThread ct = arrayL.get(i);
-                            writeMsg((i + 1) + ") " + ct.username + " since " + ct.date);
-                        }
-                        break;
+                        break;                   
                 }
             }
 
