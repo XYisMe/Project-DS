@@ -46,7 +46,6 @@ public class ClientGUI extends JFrame implements ActionListener {
         topPanel.add(new JLabel("Username: "));
         topPanel.add(tfName);
         topPanel.add(new JLabel(""));
-        northPanel.add(topPanel);
         
 
         //buttons into North Panel
@@ -61,8 +60,8 @@ public class ClientGUI extends JFrame implements ActionListener {
         northPanel.add(login);
         northPanel.add(logout);
         northPanel.add(online);
-        //add(northPanel, BorderLayout.NORTH);
-                
+
+        //header
         header.add(topPanel);
         header.add(northPanel);
         add(header, BorderLayout.NORTH);
