@@ -28,12 +28,15 @@ public class ClientGUI extends JFrame implements ActionListener {
         defaultHost = host;
 
         //NorthPanel
-        JPanel northPanel = new JPanel(new GridLayout(4, 2, 6, 10));
-        JPanel topPanel = new JPanel(new GridLayout(1, 5, 1, 3));
-        tfServer = new JTextField(host);
-        tfPort = new JTextField("" + port);
-        tfName = new JTextField("");
-        tfName.setHorizontalAlignment(SwingConstants.RIGHT);
+        JPanel header = new JPanel(new GridLayout(2,1,1,3));
+        JPanel northPanel = new JPanel(new FlowLayout(1));
+        JPanel topPanel = new JPanel(new FlowLayout(1));
+        tfServer = new JTextField(10);
+        tfServer.setText(host);
+        tfPort = new JTextField(5);
+        tfPort.setText("" + port);
+        tfName = new JTextField(10);
+        tfName.setHorizontalAlignment(SwingConstants.LEFT);
 
         //add into Panel
         topPanel.add(new JLabel("Server Address:  "));
@@ -44,6 +47,7 @@ public class ClientGUI extends JFrame implements ActionListener {
         topPanel.add(tfName);
         topPanel.add(new JLabel(""));
         northPanel.add(topPanel);
+        
 
         //buttons into North Panel
         login = new JButton("Login");
@@ -57,7 +61,11 @@ public class ClientGUI extends JFrame implements ActionListener {
         northPanel.add(login);
         northPanel.add(logout);
         northPanel.add(online);
-        add(northPanel, BorderLayout.NORTH);
+        //add(northPanel, BorderLayout.NORTH);
+                
+        header.add(topPanel);
+        header.add(northPanel);
+        add(header, BorderLayout.NORTH);
 
         //center Panel for Chat Text Area
         chatTextArea = new JTextArea("Welcome to the Chat room\n", 50, 50);
@@ -67,8 +75,9 @@ public class ClientGUI extends JFrame implements ActionListener {
         add(centerPanel, BorderLayout.CENTER);
 
         //South Panel for sending message and button
-        JPanel southPanel = new JPanel(new GridLayout(1, 2));
-        enterMsg = new JTextField("Enter message here");
+        JPanel southPanel = new JPanel(new FlowLayout());
+        enterMsg = new JTextField(30);
+        enterMsg.setText("Enter your message here");
         southPanel.add(enterMsg);
         send = new JButton("Send");
         send.addActionListener(this);
@@ -77,7 +86,7 @@ public class ClientGUI extends JFrame implements ActionListener {
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocation(800, 0);
-        setSize(600, 600);
+        setSize(700, 600);
         setVisible(true);
     }
 
