@@ -10,12 +10,12 @@ import java.io.*;
 public class Messages implements Serializable {
 
 	protected static final long serialVersionUID = 1L;
-	static final int ONLINE = 0, MESSAGE = 1, LOGOUT = 2;
+	public static final int ONLINE = 0, MESSAGE = 1, LOGOUT = 2;
 	private int type;
 	private String message;
 	
 	// constructor
-	Messages(int type, String message) {
+	public Messages(int type, String message) {
 		this.type = type;
 		this.message = message;
 	}

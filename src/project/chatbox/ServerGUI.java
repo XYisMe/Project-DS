@@ -16,7 +16,7 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
     private Server server;
 
     ServerGUI(int port) {
-        super("Server");
+        super("Server Room"); // Call Server class
         server = null;
         JPanel north = new JPanel();
         north.add(new JLabel("Port number: "));
@@ -84,7 +84,18 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
             return;
         }
     }
+    
+    class ServerRunning extends Thread {
 
+        public void run() {
+            server.start();
+            portTxt.setEditable(true);
+            sdf = new SimpleDateFormat("HH:mm:ss");
+            String time = sdf.format(new Date());
+            appendActivity(time + " ****Server has stopped****\n");
+            server = null;
+        }
+    }
     public void windowClosing(WindowEvent e) { //GUI X button top right corner      
         if (server != null) { // if my Server exist
             try {
@@ -114,17 +125,4 @@ public class ServerGUI extends JFrame implements ActionListener, WindowListener 
 
     public void windowDeactivated(WindowEvent e) {
     }
-
-    class ServerRunning extends Thread {
-
-        public void run() {
-            server.start();
-            portTxt.setEditable(true);
-            sdf = new SimpleDateFormat("HH:mm:ss");
-            String time = sdf.format(new Date());
-            appendActivity(time + " ****Server has stopped****\n");
-            server = null;
-        }
-    }
-
 }

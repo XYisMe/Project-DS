@@ -8,13 +8,13 @@ import java.util.*;
 public class Server {
 
     private static int uniqueId;
-    private ArrayList<ClientThread> arrayL;
+    private ArrayList<ThreadA> arrayL; //Client Thread
     private ServerGUI sg;
     private SimpleDateFormat sdf;
     private int port;
-    private boolean keepGoing;
+    private boolean serverStart;
 
-    public Server(int port) {
+    public Server(int port) { //server is bound to specified port number
         this(port, null);
     }
 
@@ -22,14 +22,14 @@ public class Server {
         this.sg = sg;
         this.port = port;
         sdf = new SimpleDateFormat("HH:mm:ss");
-        arrayL = new ArrayList<ClientThread>();
+        arrayL = new ArrayList<ThreadA>();
     }
 
         // for a client who logoff using the LOGOUT message
     synchronized void remove(int id) {
         // scan the array list until we found the Id
         for (int i = 0; i < arrayL.size(); ++i) {
-            ClientThread ct = arrayL.get(i);
+            ThreadA ct = arrayL.get(i);
             // found it
             if (ct.id == id) {
                 arrayL.remove(i);
@@ -57,25 +57,25 @@ public class Server {
 
         }
 
-        Server server = new Server(portNo);
+        Server server = new Server(portNo); //create a new socket and binds it to specified port number
         server.start();
     }
     
     public void start() {
-        keepGoing = true;
+        serverStart = true; 
         /* create socket server and wait for connection requests */
         try {
-            ServerSocket svrSocket = new ServerSocket(port);
+            ServerSocket svrSocket = new ServerSocket(port); //create the socket with the port number
 
-            while (keepGoing) {
+            while (serverStart) {
                 // format message saying we are waiting
                 display("Server waiting for Clients on port " + port + ".");
-                Socket skt = svrSocket.accept();
+                Socket skt = svrSocket.accept(); //accept socket to start listening for incoming client requests
 
-                if (!keepGoing) {
+                if (!serverStart) { //server stop
                     break;
                 }
-                ClientThread t = new ClientThread(skt);
+                ThreadA t = new ThreadA(skt); //incoming clients are stored in array 
                 arrayL.add(t);
                 t.start();
             }
@@ -83,7 +83,7 @@ public class Server {
             try {
                 svrSocket.close();
                 for (int i = 0; i < arrayL.size(); ++i) {
-                    ClientThread tc = arrayL.get(i);
+                    ThreadA tc = arrayL.get(i);
                     try {
                         tc.fromClient.close();
                         tc.toClient.close();
@@ -104,10 +104,10 @@ public class Server {
 
     //GUI - stop function
     protected void stop() {
-        keepGoing = false;
+        serverStart = false;
 
         try {
-            new Socket("localhost", port);
+            new Socket("localhost", port); 
         } catch (Exception e) {
             e.getMessage();
         }
@@ -136,7 +136,7 @@ public class Server {
             // we loop in reverse order in case we would have to remove a Client
             // because it has disconnected
             for (int i = arrayL.size(); --i >= 0;) {
-                ClientThread ct = arrayL.get(i);
+                ThreadA ct = arrayL.get(i);
                 // try to write to the Client if it fails remove it from the list
                 if (!ct.writeMsg(messageLf)) {
                     arrayL.remove(i);
@@ -149,7 +149,7 @@ public class Server {
 
 
 
-    class ClientThread extends Thread {
+    class ThreadA extends Thread { //Client Thread
 
         Socket socket;
         ObjectInputStream fromClient;
@@ -159,15 +159,16 @@ public class Server {
         Messages msgs;
         String date;
 
-        ClientThread(Socket socket) {
+        ThreadA(Socket socket) {
             id = ++uniqueId;
             this.socket = socket;
 
             System.out.println("Thread trying to create Object Input/Output Streams");
             try {
-                toClient = new ObjectOutputStream(socket.getOutputStream());
+                toClient = new ObjectOutputStream(socket.getOutputStream()); //send object to Messages (serialized) then to client after deserialization
                 fromClient = new ObjectInputStream(socket.getInputStream());
-                username = (String) fromClient.readObject();
+                username = (String) fromClient.readObject(); //deserialize username
+                display("Data is being deserialize");
                 display(username + " just connected.");
             } catch (IOException e) {
                 display("Exception creating new Input/output Streams: " + e);
@@ -179,11 +180,11 @@ public class Server {
         }
 
         public void run() {
-            boolean keepGoing = true;
-            while (keepGoing) {
-                // read a String (which is an object)
+            boolean serverStart = true;
+            while (serverStart) {              
                 try {
-                    msgs = (Messages) fromClient.readObject();
+                    msgs = (Messages) fromClient.readObject(); // deserialize message (get msg)
+                    display("Data is being deserialize");
                 } catch (IOException e) {
                     display(username + " Exception reading Streams: " + e);
                     break;
@@ -193,26 +194,25 @@ public class Server {
                 String message = msgs.getMessage();
 
                 switch (msgs.getType()) {
-
+                    case Messages.ONLINE:
+                        writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
+                        for (int i = 0; i < arrayL.size(); ++i) {
+                            ThreadA ct = arrayL.get(i);
+                            writeMsg((i + 1) + ") " + ct.username + " since " + ct.date);
+                             break;
+                        }
                     case Messages.MESSAGE:
                         broadcast(username + ": " + message);
                         break;
                     case Messages.LOGOUT:
                         display(username + " disconnected with a LOGOUT message.");
-                        keepGoing = false;
-                        break;
-                    case Messages.ONLINE:
-                        writeMsg("List of the users connected at " + sdf.format(new Date()) + "\n");
-                        for (int i = 0; i < arrayL.size(); ++i) {
-                            ClientThread ct = arrayL.get(i);
-                            writeMsg((i + 1) + ") " + ct.username + " since " + ct.date);
-                        }
-                        break;
+                        serverStart = false;
+                        break;                   
                 }
             }
 
             remove(id);
-            close();
+            close(); //server terminated (all connected clients will be terminated)
         }
 
         private void close() {
