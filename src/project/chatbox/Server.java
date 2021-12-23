@@ -12,9 +12,9 @@ public class Server {
     private ServerGUI sg;
     private SimpleDateFormat sdf;
     private int port;
-    private boolean keepGoing;
+    private boolean serverStart;
 
-    public Server(int port) {
+    public Server(int port) { //server is bound to specified port number
         this(port, null);
     }
 
@@ -57,25 +57,25 @@ public class Server {
 
         }
 
-        Server server = new Server(portNo);
+        Server server = new Server(portNo); //create a new socket and binds it to specified port number
         server.start();
     }
     
     public void start() {
-        keepGoing = true;
+        serverStart = true; 
         /* create socket server and wait for connection requests */
         try {
-            ServerSocket svrSocket = new ServerSocket(port);
+            ServerSocket svrSocket = new ServerSocket(port); //create the socket with the port number
 
-            while (keepGoing) {
+            while (serverStart) {
                 // format message saying we are waiting
                 display("Server waiting for Clients on port " + port + ".");
-                Socket skt = svrSocket.accept();
+                Socket skt = svrSocket.accept(); //accept socket to start listening for incoming client requests
 
-                if (!keepGoing) {
+                if (!serverStart) { //server stop
                     break;
                 }
-                ThreadA t = new ThreadA(skt);
+                ThreadA t = new ThreadA(skt); //incoming clients are stored in array 
                 arrayL.add(t);
                 t.start();
             }
@@ -104,10 +104,10 @@ public class Server {
 
     //GUI - stop function
     protected void stop() {
-        keepGoing = false;
+        serverStart = false;
 
         try {
-            new Socket("localhost", port);
+            new Socket("localhost", port); 
         } catch (Exception e) {
             e.getMessage();
         }
@@ -165,7 +165,7 @@ public class Server {
 
             System.out.println("Thread trying to create Object Input/Output Streams");
             try {
-                toClient = new ObjectOutputStream(socket.getOutputStream());
+                toClient = new ObjectOutputStream(socket.getOutputStream()); //send object to Messages (serialized) then to client after deserialization
                 fromClient = new ObjectInputStream(socket.getInputStream());
                 username = (String) fromClient.readObject(); //deserialize username
                 display("Data is being deserialize");
@@ -180,8 +180,8 @@ public class Server {
         }
 
         public void run() {
-            boolean keepGoing = true;
-            while (keepGoing) {              
+            boolean serverStart = true;
+            while (serverStart) {              
                 try {
                     msgs = (Messages) fromClient.readObject(); // deserialize message (get msg)
                     display("Data is being deserialize");
@@ -206,13 +206,13 @@ public class Server {
                         break;
                     case Messages.LOGOUT:
                         display(username + " disconnected with a LOGOUT message.");
-                        keepGoing = false;
+                        serverStart = false;
                         break;                   
                 }
             }
 
             remove(id);
-            close();
+            close(); //server terminated (all connected clients will be terminated)
         }
 
         private void close() {

@@ -28,56 +28,64 @@ public class ClientGUI extends JFrame implements ActionListener {
         defaultHost = host;
 
         //NorthPanel
-        JPanel northPanel = new JPanel(new GridLayout(4, 6, 6, 10));
-        JPanel topPanel = new JPanel(new GridLayout(1, 6, 1, 3));
-        tfServer = new JTextField(host);
-        tfPort = new JTextField("" + port);
-        tfName = new JTextField("");
-        tfName.setHorizontalAlignment(SwingConstants.RIGHT);
+ JPanel header = new JPanel(new GridLayout(2,2,1,3)); 
+        JPanel northPanel = new JPanel(new FlowLayout(1)); 
+        JPanel topPanel = new JPanel(new FlowLayout(1)); 
+        tfServer = new JTextField(10); 
+        tfServer.setText(host); 
+        tfPort = new JTextField(5); 
+        tfPort.setText("" + port); 
+        tfName = new JTextField(10); 
+        tfName.setHorizontalAlignment(SwingConstants.LEFT); 
 
-        //add into Panel
-        topPanel.add(new JLabel("Server Address:  "));
-        topPanel.add(tfServer);
-        topPanel.add(new JLabel("Port Number:  "));
-        topPanel.add(tfPort);
-        topPanel.add(new JLabel("Username: "));
-        topPanel.add(tfName);
-        topPanel.add(new JLabel(""));
-        northPanel.add(topPanel);
+        //add into Panel 
+        topPanel.add(new JLabel("Server Address:  ")); 
+        topPanel.add(tfServer); 
+        topPanel.add(new JLabel("Port Number:  ")); 
+        topPanel.add(tfPort); 
+        topPanel.add(new JLabel("Username: ")); 
+        topPanel.add(tfName); 
+        topPanel.add(new JLabel("")); 
 
-        //buttons into North Panel
-        login = new JButton("Login");
-        login.addActionListener(this);
-        logout = new JButton("Logout");
-        logout.addActionListener(this);
-        logout.setEnabled(false);// login before being able to logout
-        online = new JButton("Online Users");
-        online.addActionListener(this);
-        online.setEnabled(false);// login before being able to Who is in		
-        northPanel.add(login);
-        northPanel.add(logout);
-        northPanel.add(online);
-        add(northPanel, BorderLayout.NORTH);
+        //buttons into North Panel 
+        login = new JButton("Login"); 
+        login.addActionListener(this); 
+        logout = new JButton("Logout"); 
+        logout.addActionListener(this); 
+        logout.setEnabled(false);// login before being able to logout 
+        online = new JButton("Online Users"); 
+        online.addActionListener(this); 
+        online.setEnabled(false);// login before being able to Who is in		 
+        northPanel.add(login); 
+        northPanel.add(logout); 
+        northPanel.add(online); 
 
-        //center Panel for Chat Text Area
-        chatTextArea = new JTextArea("Welcome to the Chat room\n", 50, 50);
-        JPanel centerPanel = new JPanel(new GridLayout(1, 1));
-        centerPanel.add(new JScrollPane(chatTextArea));
-        chatTextArea.setEditable(false);
-        add(centerPanel, BorderLayout.CENTER);
+        //header 
+        header.add(topPanel); 
+        header.add(northPanel); 
+        add(header, BorderLayout.NORTH); 
 
-        //South Panel for sending message and button
-        JPanel southPanel = new JPanel(new GridLayout(1, 2));
-        enterMsg = new JTextField("Enter message here");
-        southPanel.add(enterMsg);
-        send = new JButton("Send");
-        send.addActionListener(this);
-        southPanel.add(send);
-        add(southPanel, BorderLayout.SOUTH);
+        //center Panel for Chat Text Area 
+        chatTextArea = new JTextArea("Welcome to the Chat room\n", 50, 50); 
+        JPanel centerPanel = new JPanel(new GridLayout(1, 1)); 
+        centerPanel.add(new JScrollPane(chatTextArea)); 
+        chatTextArea.setEditable(false); 
+        add(centerPanel, BorderLayout.CENTER); 
 
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(600, 600);
-        setVisible(true);
+        //South Panel for sending message and button 
+        JPanel southPanel = new JPanel(new FlowLayout()); 
+        enterMsg = new JTextField(30); 
+        enterMsg.setText("Enter your message here"); 
+        southPanel.add(enterMsg); 
+        send = new JButton("Send"); 
+        send.addActionListener(this); 
+        southPanel.add(send); 
+        add(southPanel, BorderLayout.SOUTH); 
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE); 
+        setLocation(800, 0); 
+        setSize(700, 600); 
+        setVisible(true); 
     }
 
     public static void main(String[] args) {
